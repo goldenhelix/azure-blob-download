@@ -52,8 +52,6 @@ steps:
     command: bash
     args:
       - |-
-        set -x
-
         # Create output directory if it doesn't exist
         mkdir -p "${output_directory}"
 

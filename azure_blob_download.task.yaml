@@ -1,0 +1,66 @@
+name: Download Azure Blob Storage Files
+description: |-
+    Download files from Azure Blob Storage using rclone.
+
+    To get the SAS URL for Azure Blob Storage, follow these steps:
+
+    1. Go to the Azure Portal and navigate to your Storage Account.
+    2. Select the container you want to access.
+    3. In the left menu, click on Settings > Shared access tokens.
+    4. Configure the following settings:
+       - Signing method  use Account key (default).
+       - Signing key: Choose Key 1 or Key 2 as needed 
+       - Stored access policy: None (unless you have a policy)
+       - Permissions: Select at least Read and List (and others as needed)
+       - Start and expiry date/time: Set the appropriate window for access
+       - Allowed IP addresses: (Optional) Restrict access to specific IPs if desired
+       - Allowed protocols: Select HTTPS only for security
+    5. Click the Generate SAS token and URL button at the bottom.
+    6. Copy the Blob SAS URL that is generated. This will be used as the sas_url parameter in this task.
+
+    Note:
+    The SAS URL provides temporary, restricted access to your blob storage. Make sure to set an appropriate expiration time and permissions for your use case.
+
+agent_requirements:
+  cpu_cores: 1
+  memory_gb: 1
+
+parameters:
+  - name: sas_url
+    label: Azure Blob Storage SAS URL
+    type: secret
+
+  - name: base_path
+    label: Base Path
+    help: This should start with the container name (i.e. "container/folder/subfolder/...")
+    type: string
+    optional: true
+
+  - name: output_directory
+    label: Output Directory
+    type: directory
+
+  - name: dry_run
+    label: List Files Only (Dry Run)
+    type: boolean
+    value: 'false'
+
+steps:
+  - name: scriptTask
+    description: Download or list files from Azure Blob Storage
+    type: cmd
+    command: bash
+    args:
+      - |-
+        set -x
+
+        # Create output directory if it doesn't exist
+        mkdir -p "${output_directory}"
+
+        if [ "${dry_run}" = "true" ]; then
+          # List files only
+          rclone ls ":azureblob:${base_path}" --azureblob-sas-url "${sas_url}"
+        else
+          # Download files
+          rclone copy ":azureblob:${base_path}" "${output_directory}" --azureblob-sas-url "${sas_url}"
+        fi
